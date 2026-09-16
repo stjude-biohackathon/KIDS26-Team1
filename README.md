@@ -1,11 +1,9 @@
-<p align="center">
-    <h1 align="center"><b><u>Team 1 | Bio Hackathon 2026</u></b></h1>
+<h1 align="center"><b><u>Team 1 | Bio Hackathon 2026</u></b></h1>
   <!-- 2. The Title (Centered, Bolded, Underlined) -->
   <h1 align="center"><b>Agentic AI Workflows to Discover Pediatric-Specific INO80/SRCAP Chromatin Remodeler Subunits and Adaptors for Cancer Dependencies</b></h1>
   <!-- 3. The Tagline -->
-  <h3 align="center"><ins><strong>AI</strong></ins> assisted <ins><strong>S</strong></ins>elective <ins><strong>C</strong></ins>ancer-dependency <ins><strong>R</strong></ins>anking of <ins><strong>A</strong></ins>ssociated <ins><strong>P</strong></ins>roteins</h3>
 
-</p>
+$${\Large {\color{#DC143C}\underline{\textbf{\textsf{AI}}}}\ \textsf{assisted}\ {\color{#DC143C}\underline{\textbf{\textsf{S}}}}\textsf{elective}\ {\color{#DC143C}\underline{\textbf{\textsf{C}}}}\textsf{ancer-dependency}\ {\color{#DC143C}\underline{\textbf{\textsf{R}}}}\textsf{anking}\ \textsf{of}\ {\color{#DC143C}\underline{\textbf{\textsf{A}}}}\textsf{ssociated}\ {\color{#DC143C}\underline{\textbf{\textsf{P}}}}\textsf{roteins}}$$
 
 <p align="center">
   <img src="assets/SCRAP-AI_logo_recolored.svg" alt="Project Logo" width="400">
