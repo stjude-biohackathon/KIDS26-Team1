@@ -11,6 +11,10 @@ $${\Large {\color{#DC143C}\underline{\textbf{\textsf{AI}}}}\ \textsf{assisted}\ 
 
 </p>
 
+Multi-agent Streamlit app that ranks genes **co-expressed with the INO80/SRCAP
+chromatin-remodeling complex** (or any other proteins of user interest) by their **cohort-selective essentiality**, folds
+in **STRING physical/functional interaction** evidence, and builds grounded
+**target dossiers** (literature + protein/drug annotations) for candidate genes.
 
 ## Team members
 
