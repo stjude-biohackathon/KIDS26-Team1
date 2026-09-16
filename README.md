@@ -3,7 +3,7 @@
   <!-- 2. The Title (Centered, Bolded, Underlined) -->
   <h1 align="center"><b>Agentic AI Workflows to Discover Pediatric-Specific INO80/SRCAP Chromatin Remodeler Subunits and Adaptors for Cancer Dependencies</b></h1>
   <!-- 3. The Tagline -->
-  <h3 align="center"><b><u>AI</b></u> assisted <b><u>S</b></u>elective <b><u>C</b></u>ancer-dependency <b><u>R</b></u>anking of <b><u>A</b></u>ssociated <b><u>P</b></u>roteins</h3>
+  <h3 align="center"><b><u><span style="color: crimson;">AI</span></b></u> assisted <b><u><span style="color: crimson;">S</b></u>elective <b><u><span style="color: crimson;">C</span></b></u>ancer-dependency <b><u><span style="color: crimson;">R</span></b></u>anking of <b><u><span style="color: crimson;">A</span></b></u>ssociated <b><u><span style="color: crimson;">P</span></b></u>roteins</h3>
 
 </p>
 
