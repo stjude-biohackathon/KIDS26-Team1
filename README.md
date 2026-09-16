@@ -1,5 +1,12 @@
 # Team1 : Agentic AI Workflows to Discover Pediatric-Specific INO80/SRCAP Chromatin Remodeler Subunits and Adaptors for Cancer Dependencies
 
+<p align="center">
+  <img src="assets/SCRAP-AI_logo_recolored.svg" alt="Project Logo" width="400">
+  <br>
+  <h4 align="center">AI assisted Selective Cancer-dependency Ranking of Associated Proteins</h3>
+</p>
+
+
 > **Team members:** 
 
 - Pandurang Kolekar (Co-Lead)
