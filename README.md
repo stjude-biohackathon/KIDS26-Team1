@@ -7,7 +7,7 @@
 </p>
 
 
-> **Team members:** 
+## Team members
 
 - Pandurang Kolekar (Co-Lead)
 - Vinesh Vinayachandran (Co-Lead)
