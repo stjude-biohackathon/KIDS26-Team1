@@ -1,9 +1,16 @@
-# Team1 : Agentic AI Workflows to Discover Pediatric-Specific INO80/SRCAP Chromatin Remodeler Subunits and Adaptors for Cancer Dependencies
+<p align="center">
+    <h1 align="center"><b><u>Team 1 | Bio Hackathon 2026</u></b></h1>
+  <!-- 2. The Title (Centered, Bolded, Underlined) -->
+  <h1 align="center"><b>Agentic AI Workflows to Discover Pediatric-Specific INO80/SRCAP Chromatin Remodeler Subunits and Adaptors for Cancer Dependencies</b></h1>
+  <!-- 3. The Tagline -->
+  <h3 align="center"><b><u>AI</b></u> assisted <b><u>S</b></u>elective <b><u>C</b></u>ancer-dependency <b><u>R</b></u>anking of <b><u>A</b></u>ssociated <b><u>P</b></u>roteins</h3>
+
+</p>
 
 <p align="center">
   <img src="assets/SCRAP-AI_logo_recolored.svg" alt="Project Logo" width="400">
   <br>
-  <h4 align="center">AI assisted Selective Cancer-dependency Ranking of Associated Proteins</h3>
+
 </p>
 
 
