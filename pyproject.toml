@@ -1,0 +1,27 @@
+[project]
+name = "kady-sandbox"
+version = "0.1.0"
+description = "Kady project sandbox (managed by uv)"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "scipy",
+    "pyarrow>=25.0.1",
+    "streamlit>=1.62.0",
+    "plotly>=7.0.0",
+    "statsmodels>=0.15.0",
+    "pytest>=9.1.1",
+    "requests>=2.32.0",
+    "truststore>=0.10.4",
+    "fpdf2>=2.8.8",
+]
+
+[dependency-groups]
+dev = [
+    "defusedxml>=0.7.1",
+    "lxml>=6.1.3",
+    "markitdown>=0.1.7",
+    "pillow>=12.3.0",
+]

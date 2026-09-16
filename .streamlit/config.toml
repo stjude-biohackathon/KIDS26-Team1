@@ -1,0 +1,19 @@
+[theme]
+base = "light"
+primaryColor = "#1C7293"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F8FA"
+textColor = "#1A2A33"
+font = "sans serif"
+
+[server]
+runOnSave = true
+
+[client]
+# Hides the "Deploy" button and the hamburger main menu -- Streamlit Cloud's
+# deploy flow doesn't apply to a locally-run app, and this app has no
+# developer-menu items worth keeping visible by default. Combined with the
+# header-collapse CSS in ui.py, this removes the empty white strip above the
+# banner (confirmed empirically: 'minimal' leaves the header bar with no
+# content at all, so collapsing its height is safe).
+toolbarMode = "minimal"
