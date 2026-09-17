@@ -4,7 +4,7 @@ disease-agnostic and consistent with this app's caching conventions.
 
 Cache location: data/gtex/gtex_v11_median_tpm.gct.gz (bundle-friendly, like
 data/processed/ for DepMap). If the collaborator's own copy already exists
-under user_data/gtex_other_expression/data/, we reuse it (read-only copy) to
+under user_data/gtex_other_expression/data/ we reuse it (read-only copy) to
 avoid a redundant ~10 MB download -- user_data/ itself is never written.
 """
 from __future__ import annotations

@@ -455,8 +455,9 @@ def gene_narrative_deterministic(ctx: AnalysisContext, genes: list[str]) -> str:
             f"({f['selectivity_score']:.0f}). Co-expressed with the seed set in "
             f"{f['pct_coexpressed']:.0f}% of cohort lines (strongest seed {f['best_seed']}, "
             f"mean|r|={f['mean_abs_r']:.2f}); essential in {f['pct_essential_cohort']:.0f}% of "
-            f"cohort lines vs {f['pct_essential_pan']:.0f}% pan-cancer (delta {f['selectivity_delta']:+.0f} pts, "
-            f"{direction}). Joint co-expressed+essential in {f['pct_joint']:.0f}% of lines. "
+            f"cohort lines vs {f['pct_essential_pan']:.0f}% pan-cancer "
+            f"(==delta {f['selectivity_delta']:+.0f} pts, {direction}==). "
+            f"Joint co-expressed+essential in {f['pct_joint']:.0f}% of lines. "
             f"Classification: **{sel}**."
         )
     header = (f"### Relevance of {n_found} gene(s) in {ctx.spec.age_group} / "
@@ -545,7 +546,8 @@ def comparative_table_markdown(headers: list[str], rows: list[list[str]]) -> str
 def gene_narrative_llm(ctx: AnalysisContext, genes: list[str],
                        model: str | None = None, timeout: float = 600.0,
                        dossiers: dict | None = None, string_data: dict | None = None,
-                       tissue_data: dict | None = None, drug_data: dict | None = None) -> str:
+                       tissue_data: dict | None = None, drug_data: dict | None = None,
+                       biomcp_data: dict | None = None) -> str:
     """Scientific report for specific genes via the active LLM backend, grounded in the
     computed facts AND (optionally) retrieved literature + protein/drug annotations (RAG).
     `dossiers` maps gene -> knowledge.dossier() output.
@@ -617,6 +619,13 @@ def gene_narrative_llm(ctx: AnalysisContext, genes: list[str],
                 continue
             f["drug_targets"] = dd
 
+    if biomcp_data:
+        for f in facts:
+            bd = biomcp_data.get(f["gene"])
+            if not bd:
+                continue
+            f["pathway_hpa"] = bd
+
     ctx_facts = {
         "age_group": ctx.spec.age_group, "disease": ctx.spec.disease,
         "seed_source": ctx.seeds.source, "seed_genes": ctx.seeds.genes,
@@ -624,7 +633,7 @@ def gene_narrative_llm(ctx: AnalysisContext, genes: list[str],
         "expr_tpm_threshold": ctx.params.expr_tpm,
         "n_cohort_lines": ctx.ess_denom, "genes": facts,
     }
-    has_rag = bool(dossiers or string_data or drug_data)
+    has_rag = bool(dossiers or string_data or drug_data or biomcp_data)
     system = (
         "You are a cautious cancer-genomics research assistant producing a STRUCTURED "
         "REPORT (not free-form prose) from ALREADY-COMPUTED DepMap metrics for one or more "
@@ -632,9 +641,13 @@ def gene_narrative_llm(ctx: AnalysisContext, genes: list[str],
         "complex, with per-cell-line essentiality in the selected cancer cohort. "
         + ("Each gene may also include retrieved UniProt protein annotation, ChEMBL "
            "known-drug mechanisms, Europe PMC literature (title/year/PMID), STRING-db "
-           "association scores to the seed proteins (functional and physical, 0-1), and a "
+           "association scores to the seed proteins (functional and physical, 0-1), a "
            "drug_targets block (known drugs/compounds for this gene from ChEMBL/DGIdb/Open "
-           "Targets, each with a clinical-maturity + cancer-relevance score and label). "
+           "Targets, each with a clinical-maturity + cancer-relevance score and label), and "
+           "a pathway_hpa block (Reactome/KEGG pathway memberships as source/id/name triples, "
+           "plus a Human Protein Atlas hpa sub-block with protein_summary, rna_summary, "
+           "subcellular_main_location, and a tissues list of {tissue, level} pairs — via the "
+           "optional BioMCP integration). "
            if has_rag else "")
         + "Structure your response as EXACTLY these six markdown sections, each starting "
         "with a '## ' heading, in this exact order, each section addressing ALL requested "
@@ -647,8 +660,11 @@ def gene_narrative_llm(ctx: AnalysisContext, genes: list[str],
         "whether common_essential=true (a poor selective target).\n"
         "## Protein Complex / STRING Association\n"
         "For each gene: does STRING support a physical link (high physical_max = likely "
-        "direct complex member) or only functional/pathway-level association? If no STRING "
-        "data was provided for a gene, say so explicitly rather than omitting it.\n"
+        "direct complex member) or only functional/pathway-level association? If a "
+        "pathway_hpa block is present, also note its Reactome/KEGG pathway memberships (by "
+        "name) and, from its hpa sub-block, subcellular localization and any notably high-"
+        "expression tissues. If no STRING or pathway_hpa data was provided for a gene, say "
+        "so explicitly rather than omitting it.\n"
         "## Drug-Design & Therapeutic Relevance\n"
         "For each gene: protein annotation (domains, active/binding sites, PDB structures) "
         "and, if a drug_targets block is present, its top-scoring known drug(s) with their "
@@ -666,6 +682,16 @@ def gene_narrative_llm(ctx: AnalysisContext, genes: list[str],
         "implied by the data.\n"
         "Do NOT add a seventh section or a table \u2014 a comparative summary table is "
         "appended separately after your response, verbatim, by the application. "
+        "FORMATTING: use **bold** deliberately for the single most important number or "
+        "conclusion in each sentence (e.g. a headline selectivity_delta, a top-tier known "
+        "drug, a pass/fail classification) rather than bolding everything; use *italics* "
+        "sparingly for caveats or explicit absent-evidence notices. You may ALSO wrap the "
+        "ONE most critical takeaway per gene (at most once or twice per gene, total) in "
+        "==double equals== to highlight it \u2014 this is a plain-text marker this app "
+        "renders as a highlight, not real markdown syntax, so use it sparingly and never "
+        "nest it inside **bold** or *italic*. A highlighted span must only ever contain "
+        "facts already present in the JSON, exactly like every other claim in this report "
+        "\u2014 do not use highlighting to state anything not otherwise grounded.\n"
         "STRICT RULES: use ONLY the genes, numbers, annotations, drugs, STRING scores, "
         "tissue names, and papers present in the JSON; do NOT invent numbers, gene names, "
         "tissue/cohort names, drugs, PDB ids, pathways as fact, or PMIDs. If a field is "
