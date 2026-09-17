@@ -1,0 +1,400 @@
+{
+  "_meta": {
+    "evidence_urls": [
+      {
+        "label": "NCBI Gene",
+        "url": "https://www.ncbi.nlm.nih.gov/gene/29117"
+      },
+      {
+        "label": "UniProt",
+        "url": "https://www.uniprot.org/uniprot/Q9NPI1"
+      },
+      {
+        "label": "Ensembl",
+        "url": "https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=ENSG00000166164"
+      },
+      {
+        "label": "OMIM",
+        "url": "https://www.omim.org/entry/618489"
+      }
+    ],
+    "ladder": [
+      {
+        "command": "biomcp search drug imatinib --limit 5",
+        "step": 1,
+        "what_it_gives": "Candidate drug identity and available structured drug records."
+      },
+      {
+        "command": "biomcp get drug imatinib targets regulatory",
+        "step": 2,
+        "what_it_gives": "Drug target and regulatory context."
+      },
+      {
+        "command": "biomcp get gene ABL1 pathways protein",
+        "step": 3,
+        "what_it_gives": "Target protein and Reactome pathway context."
+      },
+      {
+        "command": "biomcp search article --drug imatinib -g ABL1 -d \"chronic myeloid leukemia\" --type review --limit 5",
+        "step": 4,
+        "what_it_gives": "Review literature tying the drug, gene, pathway, and disease together."
+      }
+    ],
+    "next_commands": [
+      "biomcp get gene BRD7 ontology",
+      "biomcp get gene BRD7 diseases",
+      "biomcp get gene BRD7 diagnostics",
+      "biomcp get gene BRD7 funding",
+      "biomcp get gene BRD7 hpa",
+      "biomcp search diagnostic --gene BRD7",
+      "biomcp search pgx -g BRD7",
+      "biomcp search variant -g BRD7",
+      "biomcp search article -g BRD7",
+      "biomcp search drug --target BRD7",
+      "biomcp gene trials BRD7"
+    ],
+    "section_sources": [
+      {
+        "key": "identity",
+        "label": "Identity",
+        "sources": [
+          "NCBI Gene / MyGene.info"
+        ]
+      },
+      {
+        "key": "summary",
+        "label": "Summary",
+        "sources": [
+          "NCBI Gene"
+        ]
+      },
+      {
+        "key": "aliases",
+        "label": "Aliases",
+        "sources": [
+          "NCBI Gene / MyGene.info"
+        ]
+      },
+      {
+        "key": "pathways",
+        "label": "Pathways",
+        "sources": [
+          "KEGG",
+          "Reactome"
+        ]
+      },
+      {
+        "key": "hpa",
+        "label": "Human Protein Atlas",
+        "sources": [
+          "Human Protein Atlas"
+        ]
+      }
+    ],
+    "suggestions": [
+      "biomcp get gene BRD7 hpa",
+      "biomcp search diagnostic --gene BRD7",
+      "biomcp search pgx -g BRD7",
+      "biomcp search variant -g BRD7",
+      "biomcp search article -g BRD7",
+      "biomcp search drug --target BRD7",
+      "biomcp gene trials BRD7"
+    ],
+    "workflow": "mechanism-pathway"
+  },
+  "aliases": [
+    "BP75",
+    "CELTIX1",
+    "NAG4",
+    "SMARCI1"
+  ],
+  "clinical_diseases": [
+    "hepatocellular carcinoma",
+    "hypothyroidism",
+    "thyroid gland disorder",
+    "inflammatory bowel disease",
+    "neurodegenerative disease"
+  ],
+  "ensembl_id": "ENSG00000166164",
+  "entrez_id": "29117",
+  "gene_type": "protein-coding",
+  "genomic_coordinates": "16:50313487-50369059 (strand: -1)",
+  "hpa": {
+    "protein_summary": "Ubiquitous nuclear expression.",
+    "reliability": "Enhanced",
+    "rna_summary": "Low tissue specificity; Detected in all",
+    "subcellular_additional_location": [
+      "cytosol"
+    ],
+    "subcellular_main_location": [
+      "nucleoplasm"
+    ],
+    "tissues": [
+      {
+        "level": "Not detected",
+        "tissue": "Adipose tissue"
+      },
+      {
+        "level": "High",
+        "tissue": "Adrenal gland"
+      },
+      {
+        "level": "High",
+        "tissue": "Appendix"
+      },
+      {
+        "level": "High",
+        "tissue": "Bone marrow"
+      },
+      {
+        "level": "High",
+        "tissue": "Breast"
+      },
+      {
+        "level": "High",
+        "tissue": "Bronchus"
+      },
+      {
+        "level": "Medium",
+        "tissue": "Caudate"
+      },
+      {
+        "level": "High",
+        "tissue": "Cerebellum"
+      },
+      {
+        "level": "Medium",
+        "tissue": "Cerebral cortex"
+      },
+      {
+        "level": "High",
+        "tissue": "Cervix"
+      },
+      {
+        "level": "High",
+        "tissue": "Colon"
+      },
+      {
+        "level": "High",
+        "tissue": "Duodenum"
+      },
+      {
+        "level": "Medium",
+        "tissue": "Endometrium 1"
+      },
+      {
+        "level": "High",
+        "tissue": "Endometrium 2"
+      },
+      {
+        "level": "High",
+        "tissue": "Epididymis"
+      },
+      {
+        "level": "High",
+        "tissue": "Esophagus"
+      },
+      {
+        "level": "High",
+        "tissue": "Fallopian tube"
+      },
+      {
+        "level": "High",
+        "tissue": "Gallbladder"
+      },
+      {
+        "level": "Medium",
+        "tissue": "Heart muscle"
+      },
+      {
+        "level": "Low",
+        "tissue": "Hippocampus"
+      },
+      {
+        "level": "High",
+        "tissue": "Kidney"
+      },
+      {
+        "level": "Medium",
+        "tissue": "Liver"
+      },
+      {
+        "level": "High",
+        "tissue": "Lung"
+      },
+      {
+        "level": "High",
+        "tissue": "Lymph node"
+      },
+      {
+        "level": "High",
+        "tissue": "Nasopharynx"
+      },
+      {
+        "level": "High",
+        "tissue": "Oral mucosa"
+      },
+      {
+        "level": "Medium",
+        "tissue": "Ovary"
+      },
+      {
+        "level": "High",
+        "tissue": "Pancreas"
+      },
+      {
+        "level": "High",
+        "tissue": "Parathyroid gland"
+      },
+      {
+        "level": "High",
+        "tissue": "Placenta"
+      },
+      {
+        "level": "High",
+        "tissue": "Prostate"
+      },
+      {
+        "level": "High",
+        "tissue": "Rectum"
+      },
+      {
+        "level": "High",
+        "tissue": "Salivary gland"
+      },
+      {
+        "level": "High",
+        "tissue": "Seminal vesicle"
+      },
+      {
+        "level": "High",
+        "tissue": "Skin 1"
+      },
+      {
+        "level": "High",
+        "tissue": "Skin 2"
+      },
+      {
+        "level": "High",
+        "tissue": "Small intestine"
+      },
+      {
+        "level": "Medium",
+        "tissue": "Smooth muscle"
+      },
+      {
+        "level": "Low",
+        "tissue": "Soft tissue 1"
+      },
+      {
+        "level": "Low",
+        "tissue": "Soft tissue 2"
+      },
+      {
+        "level": "Medium",
+        "tissue": "Spleen"
+      },
+      {
+        "level": "High",
+        "tissue": "Stomach 1"
+      },
+      {
+        "level": "High",
+        "tissue": "Stomach 2"
+      },
+      {
+        "level": "High",
+        "tissue": "Testis"
+      },
+      {
+        "level": "High",
+        "tissue": "Thyroid gland"
+      },
+      {
+        "level": "High",
+        "tissue": "Tonsil"
+      },
+      {
+        "level": "High",
+        "tissue": "Urinary bladder"
+      },
+      {
+        "level": "High",
+        "tissue": "Vagina"
+      }
+    ]
+  },
+  "location": "16",
+  "name": "bromodomain containing 7",
+  "omim_id": "618489",
+  "pathways": [
+    {
+      "id": "hsa05225",
+      "name": "Hepatocellular carcinoma - Homo sapiens (human)",
+      "source": "KEGG"
+    },
+    {
+      "id": "R-HSA-3222092",
+      "name": "BRD7",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-3222093",
+      "name": "BRD7 binds TP53 and EP300",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-9932832",
+      "name": "BRD7 binds SMARCC dimer:SMARCDs:SMARCE1:SMARCB1:ARID2",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-5628871",
+      "name": "BRD7 promotes EP300-mediated acetylation of TP53",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-9932843",
+      "name": "PHF10 binds SMARCC dimer:SMARCDs:SMARCE1:SMARCB1:ARID2:BRD7",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-9933237",
+      "name": "PBRM1-containing ATPase complex binds SMARCC dimer:SMARCDs:SMARCE1:SMARCB1:ARID2:BRD&:PHF10",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-9932833",
+      "name": "SMARCC dimer:SMARCDs:SMARCE1:SMARCB1:ARID2:BRD7",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-3222096",
+      "name": "BRD7:p-S15,S20-TP53:EP300",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-9932844",
+      "name": "SMARCC dimer:SMARCDs:SMARCE1:SMARCB1:ARID2:BRD7:PHF10",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-5628870",
+      "name": "BRD7:Ac-K382,p-S15,S20-TP53:EP300",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-9932854",
+      "name": "pBAF",
+      "source": "Reactome"
+    },
+    {
+      "id": "R-HSA-6805649",
+      "name": "KAT6A:ING5:MEAF6:BRPF1,(2,3):PML:Ac-K120,p-S15,S20-TP53, BRD7:p-S15,S20-TP53:EP300",
+      "source": "Reactome"
+    }
+  ],
+  "summary": "This gene encodes a protein which is a member of the bromodomain-containing protein family. The product of this gene has been identified as a component of one form of the SWI/SNF chromatin remodeling complex, and as a protein which interacts with p53 and is required for p53-dependent oncogene-induced senescence which prevents tumor growth.",
+  "symbol": "BRD7",
+  "uniprot_id": "Q9NPI1"
+}

@@ -6,6 +6,7 @@ Pure UI — no analysis logic. Import and call from streamlit_app.py.
 from __future__ import annotations
 
 import base64
+import re
 from pathlib import Path
 
 import plotly.graph_objects as go
@@ -347,6 +348,43 @@ def card_container(key: str, title: str, icon: str = ""):
         label = f"{icon}&nbsp;&nbsp;{title}" if icon else title
         st.markdown(f'<div class="kady-card-title">{label}</div>', unsafe_allow_html=True)
     return c
+
+
+_HIGHLIGHT_RE = re.compile(r"==(.+?)==")
+
+
+def _escape_html(text: str) -> str:
+    """Minimal manual HTML escaper (not the stdlib `html` module -- this file
+    already uses `html` as a local variable name in a couple of places, so
+    importing it module-wide would be a real shadowing footgun)."""
+    return (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def render_highlighted_html(text: str) -> str:
+    """Pure transform: escape any stray HTML in `text`, then turn this app's
+    bounded `==highlighted text==` syntax into a `<mark>` span. Split out from
+    markdown_with_highlights() so the substitution logic is directly testable
+    without a live Streamlit script-run context. The model/deterministic text
+    never emits raw HTML: escaping runs FIRST, so the `<mark>` this function
+    inserts is the only HTML that ever reaches the page -- not an
+    arbitrary-HTML-injection surface.
+    """
+    escaped = _escape_html(text)
+    return _HIGHLIGHT_RE.sub(
+        r'<mark style="background:#FBE9EE;color:#17324F;padding:0 3px;'
+        r'border-radius:3px;font-weight:600;">\1</mark>',
+        escaped,
+    )
+
+
+def markdown_with_highlights(text: str) -> None:
+    """Render narrative markdown, treating a bounded `==highlighted text==`
+    syntax as a soft highlight -- this app's ONLY inline-emphasis channel
+    beyond standard **bold**/*italic*, defined and parsed entirely by this
+    app's own code (see gene_narrative_llm()'s system prompt and
+    gene_narrative_deterministic()).
+    """
+    st.markdown(render_highlighted_html(text), unsafe_allow_html=True)
 
 
 def chips(items: list[tuple[str, str]]) -> None:

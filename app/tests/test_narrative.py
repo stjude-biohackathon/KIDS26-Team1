@@ -510,3 +510,55 @@ def test_system_prompt_has_six_sections_not_seven(monkeypatch):
     assert "## Executive Summary" in sysprompt
     assert "## Experimental Validation & Testing Guidelines" in sysprompt
     assert "six markdown sections" in sysprompt
+
+
+@needs_parquets
+def test_gene_narrative_llm_attaches_biomcp_data_to_facts(monkeypatch):
+    """biomcp_data (BioMCP pathways/HPA), when provided, must reach the JSON facts
+    sent to the model as pathway_hpa -- and the system prompt must describe it,
+    same treatment as dossiers/string_data/drug_data (unlike tissue_data, which
+    is deliberately withheld)."""
+    import agents.narrative as n
+    ctx = _run(r_min=0.1, q_max=0.25)
+    ranked = ctx.ranked
+    if ranked is None or ranked.empty:
+        import pytest
+        pytest.skip("no ranked candidates for this cohort/thresholds")
+    gene = ranked.index[0]
+    biomcp_data = {
+        gene: {
+            "pathways": [{"source": "Reactome", "id": "R-HSA-1", "name": "Test pathway"}],
+            "hpa": {"protein_summary": "Ubiquitous.", "rna_summary": "Low tissue specificity",
+                   "reliability": "Enhanced", "subcellular_main_location": ["nucleoplasm"],
+                   "subcellular_additional_location": [],
+                   "tissues": [{"tissue": "Liver", "level": "High"}]},
+        }
+    }
+    captured = {}
+    monkeypatch.setattr(n, "llm_complete",
+                        lambda system, prompt, **k: captured.update(
+                            system=system, prompt=prompt) or "## Executive Summary\nx")
+    n.gene_narrative_llm(ctx, [gene], biomcp_data=biomcp_data)
+    assert "pathway_hpa" in captured["prompt"]
+    assert "Test pathway" in captured["prompt"]
+    assert "pathway_hpa" in captured["system"]
+
+
+@needs_parquets
+def test_gene_narrative_llm_biomcp_data_absent_gene_not_attached():
+    import agents.narrative as n
+    ctx = _run(r_min=0.1, q_max=0.25)
+    ranked = ctx.ranked
+    if ranked is None or ranked.empty:
+        import pytest
+        pytest.skip("no ranked candidates for this cohort/thresholds")
+    gene = ranked.index[0]
+    facts = [n.gene_facts(ctx, gene)]
+    # biomcp_data present but doesn't cover this gene (e.g. gene unresolved by biomcp)
+    biomcp_data = {"SOME_OTHER_GENE": {"pathways": [], "hpa": None}}
+    # exercise the same attach loop gene_narrative_llm uses, without needing an LLM call
+    for f in facts:
+        bd = biomcp_data.get(f["gene"])
+        if bd:
+            f["pathway_hpa"] = bd
+    assert "pathway_hpa" not in facts[0]

@@ -21,6 +21,44 @@ def test_markdown_to_pdf_bytes_is_a_valid_pdf():
     assert b"%%EOF" in data
 
 
+def _tiny_png() -> bytes:
+    """A minimal valid 1x1 PNG, generated via a real encoder (Pillow-free: plotly's
+    kaleido isn't guaranteed available in every test environment, so this is a
+    hand-built minimal PNG rather than a rasterized figure)."""
+    import base64
+    # 1x1 red pixel PNG, base64-encoded (well-known minimal fixture).
+    b64 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    )
+    return base64.b64decode(b64)
+
+
+def test_markdown_to_pdf_bytes_embeds_images():
+    png = _tiny_png()
+    data = markdown_to_pdf_bytes("Report", "Sub", "## Body\n\ntext",
+                                 images=[("Figure 1: a plot", png)])
+    assert data.startswith(b"%PDF-")
+    assert b"Plots from other tabs" not in data  # heading text is compressed in PDF streams
+    assert len(data) > len(markdown_to_pdf_bytes("Report", "Sub", "## Body\n\ntext"))
+
+
+def test_markdown_to_pdf_bytes_no_images_param_unchanged():
+    """images=None (the default) must produce byte-identical output to omitting it
+    entirely -- existing callers that don't pass images= see no behavior change."""
+    a = markdown_to_pdf_bytes("Report", "Sub", "## Body\n\ntext")
+    b = markdown_to_pdf_bytes("Report", "Sub", "## Body\n\ntext", images=None)
+    assert a == b
+
+
+def test_markdown_to_pdf_bytes_bad_image_bytes_degrades_gracefully():
+    """A corrupt/unreadable image must not sink the whole PDF export -- it gets a
+    clear inline note instead (mirrors this app's honest-fallback pattern)."""
+    data = markdown_to_pdf_bytes("Report", "Sub", "## Body\n\ntext",
+                                 images=[("Bad figure", b"not a real png")])
+    assert data.startswith(b"%PDF-")
+    assert b"%%EOF" in data
+
+
 def test_pdf_renders_headings_bullets_and_bold_italic_as_distinct_fonts():
     md = (
         "## A Heading\n\n"
@@ -35,6 +73,20 @@ def test_pdf_renders_headings_bullets_and_bold_italic_as_distinct_fonts():
     assert "Helvetica" in fonts
     assert "Helvetica-Bold" in fonts
     assert "Helvetica-Italic" in fonts or "Helvetica-Oblique" in fonts
+
+
+def test_pdf_renders_highlighted_text_without_crashing():
+    md = (
+        "## Executive Summary\n\n"
+        "BRD7 shows ==a strong cohort-selective dependency signal== worth pursuing.\n\n"
+        "- ==Rank #1/19 by selectivity score==\n"
+    )
+    data = markdown_to_pdf_bytes("Report", "Sub", md)
+    assert data.startswith(b"%PDF-")
+    # highlighted runs still use the same Helvetica family, just a different
+    # fill color (fpdf2 core fonts don't add a new font resource for color-only
+    # changes) -- the crash-free render + still-present base font is the check.
+    assert "Helvetica" in _font_names(data)
 
 
 def test_pdf_renders_a_pipe_table():
@@ -69,9 +121,15 @@ def test_sanitize_maps_common_unicode_to_ascii():
 
 def test_split_inline_bold_and_italic():
     runs = _split_inline("**bold** then *italic* then plain")
-    assert runs[0] == ("bold", True, False)
-    assert any(r == ("italic", False, True) for r in runs)
-    assert runs[-1] == (" then plain", False, False)
+    assert runs[0] == ("bold", True, False, False)
+    assert any(r == ("italic", False, True, False) for r in runs)
+    assert runs[-1] == (" then plain", False, False, False)
+
+
+def test_split_inline_highlight():
+    runs = _split_inline("plain ==highlighted== plain")
+    assert ("highlighted", False, False, True) in runs
+    assert runs[0] == ("plain ", False, False, False)
 
 
 def test_empty_body_still_produces_valid_pdf():

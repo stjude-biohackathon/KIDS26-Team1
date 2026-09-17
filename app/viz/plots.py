@@ -14,8 +14,28 @@ def _neglog10(q: pd.Series) -> pd.Series:
     return (-np.log10(q)).clip(upper=_NEGLOG_CAP)
 
 
+def _add_gene_highlights(fig: go.Figure, df: pd.DataFrame, genes: list[str] | None,
+                         x_col: str, y_col: str) -> go.Figure:
+    """Overlay a distinct marker+label for specific genes on an existing scatter
+    figure -- additive only (a new trace), never mutates the original data/trace,
+    so existing callers that omit `genes` see byte-identical figures."""
+    if not genes:
+        return fig
+    sub = df[df.index.isin(genes)] if df.index.name else df[df["gene"].isin(genes)]
+    if sub.empty:
+        return fig
+    labels = list(sub.index) if df.index.name else list(sub["gene"])
+    fig.add_trace(go.Scatter(
+        x=sub[x_col], y=sub[y_col], mode="markers+text", text=labels,
+        textposition="top center", name="requested gene(s)",
+        marker=dict(size=16, color="rgba(0,0,0,0)", symbol="circle",
+                   line=dict(width=3, color="#D11947")),
+    ))
+    return fig
+
+
 def volcano(agg: pd.DataFrame, r_min: float, q_max: float, title: str,
-            positive_only: bool = False) -> go.Figure:
+            positive_only: bool = False, highlight_genes: list[str] | None = None) -> go.Figure:
     """x = mean_r, y = -log10(min_q); color = passes threshold."""
     if agg is None or agg.empty:
         return _empty("No candidates")
@@ -44,7 +64,7 @@ def volcano(agg: pd.DataFrame, r_min: float, q_max: float, title: str,
     fig.add_vline(x=-r_min, line_dash="dot", line_color="#888")
     fig.update_layout(xaxis_title="mean r vs seed set", yaxis_title="-log10(min q)",
                       legend_title="", height=520)
-    return fig
+    return _add_gene_highlights(fig, df.set_index("gene"), highlight_genes, "mean_r", "neglog_q")
 
 
 def heatmap(r_matrix: pd.DataFrame, top_k: int, agg: pd.DataFrame,
@@ -108,7 +128,8 @@ def drilldown_scatter(x: pd.Series, y: pd.Series, labels: pd.Series,
     return fig
 
 
-def essentiality_scatter(ranked: pd.DataFrame, title: str) -> go.Figure:
+def essentiality_scatter(ranked: pd.DataFrame, title: str,
+                         highlight_genes: list[str] | None = None) -> go.Figure:
     """x = % co-expressed, y = % essential; size = joint %, color = common-essential."""
     if ranked is None or ranked.empty:
         return _empty("No ranked candidates")
@@ -126,15 +147,21 @@ def essentiality_scatter(ranked: pd.DataFrame, title: str) -> go.Figure:
         "<br>essential|co-expr %{customdata[2]:.0f}%<extra></extra>"))
     fig.update_layout(xaxis_title="% cohort lines co-expressed",
                       yaxis_title="% cohort lines essential", legend_title="", height=560)
-    return fig
+    return _add_gene_highlights(fig, ranked, highlight_genes, "pct_coexpressed", "pct_essential")
 
 
-def ranked_bar(ranked: pd.DataFrame, top_k: int, title: str) -> go.Figure:
-    """Horizontal bar of top-K genes by selectivity score, colored by common-essential."""
+def ranked_bar(ranked: pd.DataFrame, top_k: int, title: str,
+               highlight_genes: list[str] | None = None) -> go.Figure:
+    """Horizontal bar of top-K genes by selectivity score, colored by common-essential.
+    `highlight_genes` (if given) recolors those specific bars crimson, on top of the
+    normal common-essential/selective palette -- additive only, existing callers that
+    omit it see byte-identical figures."""
     if ranked is None or ranked.empty:
         return _empty("No ranked candidates")
     sub = ranked.head(top_k).iloc[::-1]
     color = np.where(sub.get("common_essential", False), "#ff7f0e", "#2ca02c")
+    if highlight_genes:
+        color = np.where(sub.index.isin(highlight_genes), "#D11947", color)
     fig = go.Figure()
     fig.add_bar(y=sub.index, x=sub["selectivity_score"], orientation="h",
                 marker_color=color,

@@ -307,6 +307,55 @@ def _fetch_string(genes: tuple, seeds: tuple, cutoff: float) -> dict:
     return {g: string_db.string_scores(g, seeds, cutoff) for g in genes}
 
 
+@st.cache_data(show_spinner=False)
+def _fetch_biomcp(genes: tuple) -> dict:
+    from agents import biomcp_client
+    return {g: biomcp_client.gene_pathways_hpa(g) for g in genes}
+
+
+def _render_biomcp(genes, prefetched=None):
+    from agents import biomcp_client
+    data = prefetched if prefetched is not None else _fetch_biomcp(tuple(genes))
+    st.divider()
+    st.subheader("BioMCP: pathways + tissue atlas")
+    if not biomcp_client.is_available() and all(v is None for v in data.values()):
+        st.info("The optional `biomcp` CLI isn't installed (or isn't on PATH) — "
+                "install with `uv tool install biomcp-cli` (biomcp.org) to enable "
+                "this section. Nothing was fabricated in its place.")
+        return
+    for g in genes:
+        d = data.get(g)
+        with st.expander(f"{g} — BioMCP", expanded=False):
+            if d is None:
+                st.caption("Not available for this gene (unresolved symbol, or the "
+                           "underlying APIs were unreachable).")
+                continue
+            pathways = d.get("pathways") or []
+            if pathways:
+                st.markdown(f"**Pathways ({len(pathways)}):**")
+                st.dataframe(
+                    pd.DataFrame(pathways)[["source", "id", "name"]],
+                    use_container_width=True, height=min(38 * (len(pathways) + 1), 300),
+                )
+            else:
+                st.caption("No Reactome/KEGG pathway membership found.")
+            hpa = d.get("hpa")
+            if hpa:
+                st.markdown(f"**HPA protein summary:** {hpa.get('protein_summary', '—')}")
+                st.markdown(f"**HPA RNA summary:** {hpa.get('rna_summary', '—')} "
+                            f"(reliability: {hpa.get('reliability', '—')})")
+                loc = ", ".join(hpa.get("subcellular_main_location", []) or [])
+                if loc:
+                    st.markdown(f"**Subcellular location:** {loc}")
+                tissues = hpa.get("tissues") or []
+                high = [t["tissue"] for t in tissues if t.get("level") == "High"]
+                if high:
+                    st.caption(f"High expression in {len(high)} tissue(s): "
+                               f"{', '.join(high[:10])}{'…' if len(high) > 10 else ''}")
+            else:
+                st.caption("No Human Protein Atlas data found.")
+
+
 def _render_string(genes, seeds, cutoff, prefetched=None):
     from agents import string_db
     data = prefetched or _fetch_string(tuple(genes), tuple(seeds), cutoff)
@@ -848,6 +897,89 @@ with tab_ins:
                                   list_ollama_models, list_cloud_models,
                                   active_backend, set_api_key, set_base_url, llm_selftest)
 
+    def _fig_to_png_bytes(fig, width: int = 900, height: int = 520) -> bytes | None:
+        """Rasterize a Plotly figure to PNG bytes for PDF embedding, via kaleido.
+        kaleido v1.x needs a real Chrome/Chromium ALREADY installed on this machine
+        (it no longer bundles one) -- returns None on ANY failure (kaleido missing,
+        no Chrome, a renderer crash) so PDF export degrades to "see the on-screen
+        plots instead" rather than crashing; see app/README.md for the prerequisite.
+        """
+        try:
+            return fig.to_image(format="png", width=width, height=height, scale=2)
+        except Exception:
+            return None
+
+    def _gather_insight_plots(req: list[str]) -> list[tuple[str, object]]:
+        """Assemble whichever plots from the other 8 tabs have data covering `req` --
+        reuses each tab's own cached/session-state result; never triggers a new
+        network fetch or heavy recomputation from here."""
+        out: list[tuple[str, object]] = []
+        if ctx.coexpr is not None and not ctx.coexpr.empty:
+            out.append(("Co-expression volcano (requested gene(s) circled)",
+                       plots.volcano(ctx.coexpr, r_min, q_max,
+                                    f"Co-expression volcano — {disease}/{age}",
+                                    positive_only, highlight_genes=req)))
+        if ranked_visible is not None and not ranked_visible.empty:
+            out.append(("Essentiality: % co-expressed vs % essential (requested gene(s) circled)",
+                       plots.essentiality_scatter(ranked_visible, "% co-expressed vs % essential",
+                                                  highlight_genes=req)))
+            out.append(("Top genes by selectivity score (requested gene(s) in crimson)",
+                       plots.ranked_bar(ranked_visible, 20, "Top genes by selectivity score",
+                                       highlight_genes=req)))
+        if fold_string and ranked_visible is not None and not ranked_visible.empty:
+            _top = ranked_visible.head(string_topn)
+            _rr, _phys_m, _func_m, _edges = string_rerank_cached(
+                tuple(_top.index), tuple(_top["selectivity_score"]), tuple(genes),
+                string_topn, sw_sel, sw_phys, sw_func, string_rank_cut)
+            out.append(("STRING physical association — candidate × seed (from Interactions tab)",
+                       plots.string_heatmap(_phys_m, "STRING physical — candidate × seed")))
+        if "gtex_last" in st.session_state:
+            _tt, _gtex_heat, _tissues, _targets = st.session_state["gtex_last"]
+            if _tt is not None and not _tt.empty and any(g in _tt.index for g in req):
+                out.append(("Tissue-specificity heatmap (from Tissue Specificity tab's last run)",
+                           plots.tissue_heatmap(
+                               _gtex_heat, "Expression: normal tissue → TCGA → target cohort")))
+        if "drugtargets_last" in st.session_state:
+            _dtb, _dt_cancer_mode, _dt_cancer = st.session_state["drugtargets_last"]
+            if _dtb is not None and not _dtb.empty and any(g in set(_dtb["Gene"]) for g in req):
+                if _dt_cancer_mode:
+                    out.append(("Drug-target score tiers per gene (from Drug Targets tab's last run)",
+                               plots.drug_target_score_bar(_dtb, f"Score tiers per gene — {_dt_cancer}")))
+                else:
+                    out.append(("Genes × drugs heatmap (from Drug Targets tab's last run)",
+                               plots.drug_target_heatmap(_dtb, 15, vmax=3,
+                                                         title="Genes × drugs (color = score)")))
+        if _clf_path.exists():
+            _lk = protein_predictions.lookup(req, _clf_preds)
+            out.append(("Precomputed protein-classifier P(interactor) (Model Predictions tab)",
+                       plots.classifier_bar(_lk, "Precomputed classifier P(interactor)")))
+        return out
+
+    def _render_insight_plots(req: list[str], key_prefix: str) -> None:
+        with st.expander("📊 Plots from other tabs", expanded=False):
+            figs = _gather_insight_plots(req)
+            if not figs:
+                st.caption("No plots available yet — run the other tabs first "
+                          "(Co-expression/Essentiality always show once ranking exists).")
+            for i, (caption, fig) in enumerate(figs):
+                st.caption(caption)
+                st.plotly_chart(fig, use_container_width=True, key=f"{key_prefix}_insight_plot_{i}")
+
+    def _insight_plot_pdf_images(req: list[str]) -> tuple[list[tuple[str, bytes]], bool]:
+        """Returns (images, any_failed). `any_failed` is True if at least one available
+        plot could not be rasterized (almost always: kaleido installed but no Chrome/
+        Chromium on this machine) -- the caller adds one clear note to the PDF body
+        rather than a per-image failure message."""
+        images: list[tuple[str, bytes]] = []
+        any_failed = False
+        for caption, fig in _gather_insight_plots(req):
+            png = _fig_to_png_bytes(fig)
+            if png is not None:
+                images.append((caption, png))
+            else:
+                any_failed = True
+        return images, any_failed
+
     ranked = ranked_visible
     if ranked is None or ranked.empty:
         st.info("No ranked genes yet — run an analysis that produces ranked candidates.")
@@ -928,6 +1060,26 @@ with tab_ins:
             "Use last Drug Targets scoring as evidence (if available)", value=True,
             help="Reuses the most recent result from the Drug Targets tab for any typed "
                  "genes included in that run — does not trigger a new query here.")
+        use_biomcp = st.checkbox(
+            "Fetch BioMCP pathways + tissue atlas (if installed)", value=False,
+            help="Reactome/KEGG pathway membership + Human Protein Atlas (HPA) tissue "
+                 "expression and subcellular localization, via the optional `biomcp` CLI "
+                 "(biomcp.org, MIT-licensed) — install separately with "
+                 "`uv tool install biomcp-cli`; not bundled with this app. Shown in-tab "
+                 "and fed to the LLM. Off by default since it needs an external binary; "
+                 "shows a clear 'not installed' message rather than silently omitting "
+                 "the section if you enable it without installing biomcp.")
+        use_plots = st.checkbox(
+            "Include plots from other tabs (Co-expression/Essentiality/Interactions/"
+            "Tissue Specificity/Drug Targets/Model Predictions) in this report", value=False,
+            help="Reuses each tab's own cached last-run result (no new computation "
+                 "triggered here); Co-expression/Essentiality/Model Predictions are "
+                 "always available once ranking exists, the other three only if you've "
+                 "run that tab. Shown on-screen always. Embedding them in the PDF export "
+                 "additionally needs the `kaleido` package AND a real Chrome/Chromium "
+                 "already installed on this machine (kaleido v1.x no longer bundles one) "
+                 "— if that prerequisite is missing, the PDF notes it and you still get "
+                 "the on-screen plots.")
         cola, colb = st.columns([1, 1])
         gen_det = cola.button("Generate narrative", type="primary", use_container_width=True)
         model = None
@@ -965,12 +1117,20 @@ with tab_ins:
 
         det_result = st.session_state.get("det_narrative_result")
         if det_result and det_result["genes"] == tuple(req_genes):
-            st.markdown(det_result["text"])
+            ui.markdown_with_highlights(det_result["text"])
+            det_images, det_imgs_failed = ([], False)
+            if use_plots:
+                det_images, det_imgs_failed = _insight_plot_pdf_images(req_genes)
+            det_body = det_result["text"]
+            if use_plots and det_imgs_failed:
+                det_body += ("\n\n*(Some plots could not be embedded in this PDF \u2014 "
+                            "kaleido needs a real Chrome/Chromium installed on this "
+                            "machine; see the on-screen plots below/in the app.)*")
             det_pdf = pdf_export.markdown_to_pdf_bytes(
                 "Gene relevance narrative \u2014 deterministic",
                 f"{ctx.spec.age_group} / {ctx.spec.disease} \u00b7 seeds={ctx.seeds.source} \u00b7 "
                 f"genes: {', '.join(det_result['genes'])}",
-                det_result["text"],
+                det_body, images=det_images or None,
             )
             st.download_button(
                 "\U0001f4c4 Export as PDF", data=det_pdf, key="det_pdf_dl",
@@ -981,6 +1141,10 @@ with tab_ins:
                 _render_string(req_genes, genes, string_cut)
             if fetch_kb:
                 _render_dossiers(req_genes, disease, n_papers)
+            if use_biomcp:
+                _render_biomcp(req_genes)
+            if use_plots:
+                _render_insight_plots(req_genes, "det")
             if use_tissue and "gtex_last" in st.session_state:
                 _tt, _, _, _ = st.session_state["gtex_last"]
                 hit = [g for g in req_genes if g in _tt.index]
@@ -998,12 +1162,16 @@ with tab_ins:
             string_data = None
             tissue_data = None
             drug_data = None
+            biomcp_data = None
             if fetch_kb:
                 with st.spinner("Fetching literature + annotations…"):
                     dossiers = _fetch_dossiers(tuple(req_genes), disease, n_papers)
             if fetch_string:
                 with st.spinner("Fetching STRING scores…"):
                     string_data = _fetch_string(tuple(req_genes), tuple(genes), string_cut)
+            if use_biomcp:
+                with st.spinner("Fetching BioMCP pathways + tissue atlas…"):
+                    biomcp_data = _fetch_biomcp(tuple(req_genes))
             if use_tissue and "gtex_last" in st.session_state:
                 _tt, _, _tissues, _targets = st.session_state["gtex_last"]
                 tissue_data = {}
@@ -1043,7 +1211,8 @@ with tab_ins:
                 try:
                     txt = gene_narrative_llm(ctx, req_genes, model=model, timeout=600,
                                              dossiers=dossiers, string_data=string_data,
-                                             tissue_data=tissue_data, drug_data=drug_data)
+                                             tissue_data=tissue_data, drug_data=drug_data,
+                                             biomcp_data=biomcp_data)
                     if not txt.strip():
                         st.session_state.pop("llm_narrative_result", None)
                         st.error("LLM returned an empty response — it likely hit its output-"
@@ -1055,6 +1224,7 @@ with tab_ins:
                         st.session_state["llm_narrative_result"] = {
                             "genes": tuple(req_genes), "text": txt,
                             "string_data": string_data, "dossiers": dossiers,
+                            "biomcp_data": biomcp_data,
                         }
                 except (TimeoutError, OSError) as e:
                     st.session_state.pop("llm_narrative_result", None)
@@ -1072,12 +1242,20 @@ with tab_ins:
             with ui.card_container("llm-narrative-card", "LLM narrative", icon="\U0001f916"):
                 st.warning("LLM output — grounded in the computed metrics + retrieved "
                            "sources; verify every claim and citation before use.")
-                st.markdown(llm_result["text"])
+                ui.markdown_with_highlights(llm_result["text"])
+            llm_images, llm_imgs_failed = ([], False)
+            if use_plots:
+                llm_images, llm_imgs_failed = _insight_plot_pdf_images(req_genes)
+            llm_body = llm_result["text"]
+            if use_plots and llm_imgs_failed:
+                llm_body += ("\n\n*(Some plots could not be embedded in this PDF \u2014 "
+                            "kaleido needs a real Chrome/Chromium installed on this "
+                            "machine; see the on-screen plots below/in the app.)*")
             llm_pdf = pdf_export.markdown_to_pdf_bytes(
                 "Gene relevance narrative \u2014 LLM narrative",
                 f"{ctx.spec.age_group} / {ctx.spec.disease} \u00b7 seeds={ctx.seeds.source} \u00b7 "
                 f"genes: {', '.join(llm_result['genes'])} \u00b7 {backend['provider']}/{backend['model']}",
-                llm_result["text"],
+                llm_body, images=llm_images or None,
             )
             st.download_button(
                 "\U0001f4c4 Export as PDF", data=llm_pdf, key="llm_pdf_dl",
@@ -1088,3 +1266,7 @@ with tab_ins:
                 _render_string(req_genes, genes, string_cut, prefetched=llm_result["string_data"])
             if fetch_kb and llm_result.get("dossiers"):
                 _render_dossiers(req_genes, disease, n_papers, prefetched=llm_result["dossiers"])
+            if use_biomcp and llm_result.get("biomcp_data") is not None:
+                _render_biomcp(req_genes, prefetched=llm_result["biomcp_data"])
+            if use_plots:
+                _render_insight_plots(req_genes, "llm")

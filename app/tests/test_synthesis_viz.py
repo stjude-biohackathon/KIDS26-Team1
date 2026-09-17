@@ -121,6 +121,52 @@ def test_gene_narrative_deterministic_grounded():
     assert "not among" in txt  # missing gene reported
 
 
+def test_gene_narrative_deterministic_highlights_selectivity_delta():
+    """The headline selectivity_delta clause must be wrapped in this app's
+    bounded ==highlight== syntax (not raw HTML/markdown color) -- rendered
+    safely by ui.markdown_with_highlights() on-screen and by pdf_export.py's
+    _split_inline() in the PDF."""
+    from agents.narrative import gene_narrative_deterministic, gene_facts
+    ctx = _run(r_min=0.1, q_max=0.25)
+    top = ctx.ranked.index[0]
+    txt = gene_narrative_deterministic(ctx, [top])
+    f = gene_facts(ctx, top)
+    assert f"==delta {f['selectivity_delta']:+.0f} pts," in txt
+    assert txt.count("==") >= 2  # opening + closing marker present
+
+
+def test_plot_highlight_genes_additive_and_backward_compatible():
+    """volcano()/essentiality_scatter()/ranked_bar() gained an optional
+    highlight_genes param for the Insights tab's cross-tab plot embedding --
+    must be purely additive (omitting it reproduces the prior trace count)."""
+    from viz import plots
+    import plotly.graph_objects as go
+    ctx = _run(r_min=0.1, q_max=0.25)
+    top = list(ctx.ranked.index[:2])
+
+    v_plain = plots.volcano(ctx.coexpr, 0.1, 0.25, "t")
+    v_hi = plots.volcano(ctx.coexpr, 0.1, 0.25, "t", highlight_genes=top)
+    assert isinstance(v_hi, go.Figure)
+    assert len(v_hi.data) == len(v_plain.data) + 1  # one overlay trace added
+
+    s_plain = plots.essentiality_scatter(ctx.ranked, "t")
+    s_hi = plots.essentiality_scatter(ctx.ranked, "t", highlight_genes=top)
+    assert len(s_hi.data) == len(s_plain.data) + 1
+
+    b_plain = plots.ranked_bar(ctx.ranked, 10, "t")
+    b_hi = plots.ranked_bar(ctx.ranked, 10, "t", highlight_genes=[top[0]])
+    assert len(b_hi.data) == len(b_plain.data)  # bar recolors in place, no new trace
+    assert list(b_hi.data[0].marker.color) != list(b_plain.data[0].marker.color)
+
+
+def test_plot_highlight_genes_absent_gene_is_a_noop():
+    from viz import plots
+    ctx = _run(r_min=0.1, q_max=0.25)
+    v_plain = plots.volcano(ctx.coexpr, 0.1, 0.25, "t")
+    v_hi = plots.volcano(ctx.coexpr, 0.1, 0.25, "t", highlight_genes=["NOT_A_REAL_GENE"])
+    assert len(v_hi.data) == len(v_plain.data)  # no overlay trace for a gene not present
+
+
 def test_heatmap_order_param_selective_only():
     from viz import plots
     ctx = _run(r_min=0.1, q_max=0.25)

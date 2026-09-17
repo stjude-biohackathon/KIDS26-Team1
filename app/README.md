@@ -16,7 +16,7 @@ uv run python app/build_harmonized.py
 uv run streamlit run app/streamlit_app.py
 
 # tests
-uv run pytest app/tests -q            # 106 tests (network-gated ones skip offline)
+uv run pytest app/tests -q            # 136 tests (network-gated ones skip offline)
 ```
 
 ## How it works
@@ -140,7 +140,7 @@ app/
 ├── pdf_export.py           # markdown-subset -> PDF renderer for both narrative types
 ├── core/                   # harmonize, correlation, cohort, drilldown
 ├── viz/plots.py            # Plotly figures (volcano, heatmap, scatter, network)
-└── tests/                  # 106 tests (uv run pytest app/tests -q)
+└── tests/                  # 136 tests (uv run pytest app/tests -q)
 assets/                     # SCRAP-AI logo + icon (svg/png)
 .streamlit/config.toml      # brand theme
 data/processed/             # harmonized parquets (gitignored)
@@ -181,6 +181,13 @@ For the gene(s) entered on the Insights tab:
 - **STRING** — functional & physical confidence to the seed proteins; also folds
   into ranking and drives the Interactions tab (optional `STRING_API_KEY` used
   only as a rate-limit fallback)
+- **BioMCP** (optional, off by default) — Reactome/KEGG pathway membership +
+  Human Protein Atlas tissue expression/subcellular localization, via the
+  external `biomcp` CLI (biomcp.org, MIT-licensed; install separately with
+  `uv tool install biomcp-cli` — not bundled with this app, so this checkbox
+  shows an honest "not installed" message rather than a fabricated result if
+  you enable it without installing biomcp). Shelled out to as a subprocess
+  (`app/agents/biomcp_client.py`); no new Python dependency.
 
 All dossiers are shown as linked cards **and** fed to the LLM (grounded RAG): the
 prompt forbids inventing drugs, PDB ids, or PMIDs, and uses STRING to distinguish
@@ -243,4 +250,23 @@ verification to work around this.
 - PDF export (Insights tab, both narrative types) uses `fpdf2` — pure Python, no system
   libraries (unlike e.g. weasyprint's Cairo/Pango dependency). `app/pdf_export.py` renders
   only the markdown subset this app's own narratives actually produce (headings, bold/
-  italic, bullet lists, GFM pipe tables), not general markdown.
+  italic, bullet lists, GFM pipe tables, and a bounded `==highlight==` span), not general
+  markdown.
+- Both narrative types support a small, app-owned emphasis vocabulary beyond **bold**/
+  *italic*: `==highlighted text==` (not standard markdown) is parsed/rendered entirely by
+  this app's own code — `ui.markdown_with_highlights()` on-screen, `pdf_export.py` in the
+  PDF — never raw HTML/CSS from the LLM. The deterministic narrative highlights each
+  gene's headline `selectivity_delta` clause; the LLM is instructed to use it sparingly,
+  at most once or twice per gene, only around facts already present in the JSON.
+- The Insights tab's "Include plots from other tabs" checkbox (off by default) reuses
+  each tab's own cached last-run result to show the Co-expression volcano, Essentiality
+  scatter, ranked-selectivity bar (requested gene(s) circled/recolored crimson via a new
+  optional `highlight_genes` param on `viz/plots.py`'s functions), STRING physical heatmap,
+  Tissue Specificity heatmap, Drug Targets bar/heatmap, and Model Predictions classifier
+  bar — never triggers new computation from Insights. On-screen this needs nothing extra;
+  embedding the same plots in the PDF export additionally uses the `kaleido` package to
+  rasterize each Plotly figure to PNG. **`kaleido` v1.x no longer bundles a browser** — it
+  needs a real Chrome/Chromium already installed on the machine running the app. If that
+  prerequisite is missing, `_fig_to_png_bytes()` returns `None` and the PDF gets one clear
+  note ("kaleido needs a real Chrome/Chromium...") instead of a crash; the on-screen plots
+  are unaffected either way.

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
+from io import BytesIO
 
 from fpdf import FPDF
 
@@ -49,26 +50,34 @@ def _sanitize(text: str) -> str:
     return text.encode("latin-1", errors="replace").decode("latin-1")
 
 
-def _split_inline(text: str) -> list[tuple[str, bool, bool]]:
-    """Split a line into (text, bold, italic) runs for **bold** / *italic*/_italic_."""
+def _split_inline(text: str) -> list[tuple[str, bool, bool, bool]]:
+    """Split a line into (text, bold, italic, highlight) runs for **bold**,
+    *italic*/_italic_, and ==highlight== (a bounded, app-defined syntax -- not
+    standard markdown -- for the LLM to mark its single most important
+    takeaway per gene; see gene_narrative_llm()'s system prompt). The LLM never
+    emits raw HTML/color codes; this is the only "emphasis" channel beyond
+    bold/italic, and it is parsed and rendered entirely by this app's own code.
+    """
     text = _sanitize(text)
-    runs: list[tuple[str, bool, bool]] = []
-    pattern = re.compile(r"(\*\*.+?\*\*|\*.+?\*|_.+?_)")
+    runs: list[tuple[str, bool, bool, bool]] = []
+    pattern = re.compile(r"(==.+?==|\*\*.+?\*\*|\*.+?\*|_.+?_)")
     pos = 0
     for m in pattern.finditer(text):
         if m.start() > pos:
-            runs.append((text[pos:m.start()], False, False))
+            runs.append((text[pos:m.start()], False, False, False))
         tok = m.group(0)
-        if tok.startswith("**"):
-            runs.append((tok[2:-2], True, False))
+        if tok.startswith("=="):
+            runs.append((tok[2:-2], False, False, True))
+        elif tok.startswith("**"):
+            runs.append((tok[2:-2], True, False, False))
         elif tok.startswith("*"):
-            runs.append((tok[1:-1], False, True))
+            runs.append((tok[1:-1], False, True, False))
         else:
-            runs.append((tok[1:-1], False, True))
+            runs.append((tok[1:-1], False, True, False))
         pos = m.end()
     if pos < len(text):
-        runs.append((text[pos:], False, False))
-    return runs or [(text, False, False)]
+        runs.append((text[pos:], False, False, False))
+    return runs or [(text, False, False, False)]
 
 
 class _NarrativePDF(FPDF):
@@ -82,9 +91,10 @@ class _NarrativePDF(FPDF):
 def _write_inline(pdf: FPDF, line: str, size: float = 10.5) -> None:
     pdf.set_font("Helvetica", "", size)
     pdf.set_text_color(0x1A, 0x2A, 0x33)
-    for chunk, bold, italic in _split_inline(line):
+    for chunk, bold, italic, highlight in _split_inline(line):
         style = ("B" if bold else "") + ("I" if italic else "")
         pdf.set_font("Helvetica", style, size)
+        pdf.set_text_color(*_CRIMSON) if highlight else pdf.set_text_color(0x1A, 0x2A, 0x33)
         pdf.write(6, chunk)
     pdf.ln(7)
 
@@ -142,8 +152,13 @@ def _render_table(pdf: FPDF, headers: list[str], rows: list[list[str]]) -> None:
     pdf.ln(3)
 
 
-def markdown_to_pdf_bytes(title: str, subtitle: str, body_markdown: str) -> bytes:
-    """Render `body_markdown` (our narrative subset) into a titled PDF, return bytes."""
+def markdown_to_pdf_bytes(title: str, subtitle: str, body_markdown: str,
+                          images: list[tuple[str, bytes]] | None = None) -> bytes:
+    """Render `body_markdown` (our narrative subset) into a titled PDF, return bytes.
+    `images`, if given, is a list of (caption, png_bytes) pairs -- rasterized Plotly
+    figures reused from other tabs (see streamlit_app.py's _fig_to_png_bytes()) --
+    appended as a captioned gallery after the main body.
+    """
     pdf = _NarrativePDF(format="Letter")
     pdf.set_auto_page_break(auto=True, margin=16)
     pdf.set_margins(16, 14, 16)
@@ -207,9 +222,10 @@ def markdown_to_pdf_bytes(title: str, subtitle: str, body_markdown: str) -> byte
             pdf.set_font("Helvetica", "", 10.5)
             pdf.set_text_color(0x1A, 0x2A, 0x33)
             pdf.write(6, "-  ")
-            for chunk, bold, italic in _split_inline(m.group(1)):
+            for chunk, bold, italic, highlight in _split_inline(m.group(1)):
                 style = ("B" if bold else "") + ("I" if italic else "")
                 pdf.set_font("Helvetica", style, 10.5)
+                pdf.set_text_color(*_CRIMSON) if highlight else pdf.set_text_color(0x1A, 0x2A, 0x33)
                 pdf.write(6, chunk)
             pdf.ln(6.5)
             i += 1
@@ -225,5 +241,28 @@ def markdown_to_pdf_bytes(title: str, subtitle: str, body_markdown: str) -> byte
 
         _write_inline(pdf, stripped)
         i += 1
+
+    if images:
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_text_color(*_NAVY)
+        pdf.multi_cell(0, 7, "Plots from other tabs", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(1)
+        for caption, png_bytes in images:
+            if pdf.get_y() > pdf.h - pdf.b_margin - 90:
+                pdf.add_page()
+            pdf.set_font("Helvetica", "B", 10.5)
+            pdf.set_text_color(0x1A, 0x2A, 0x33)
+            pdf.multi_cell(0, 6, _sanitize(caption), new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(1)
+            try:
+                img_w = pdf.w - pdf.l_margin - pdf.r_margin
+                pdf.image(BytesIO(png_bytes), w=img_w)
+            except Exception as exc:  # never let one bad image sink the whole PDF
+                pdf.set_font("Helvetica", "I", 9)
+                pdf.set_text_color(*_MUTED)
+                pdf.multi_cell(0, 5, _sanitize(f"(could not embed image: {exc})"),
+                              new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(4)
 
     return bytes(pdf.output())
