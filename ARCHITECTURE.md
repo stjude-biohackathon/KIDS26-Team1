@@ -1,4 +1,4 @@
-# SCRAP-AI — Winning Tech Stack & Architecture
+# SCRAP-AI — Tech Stack & Architecture
 
 **SCRAP-AI** — *Selective Cancer-dependency Ranking of Associated Proteins.*
 
