@@ -21,7 +21,7 @@ in **STRING physical/functional interaction** evidence, and builds grounded
 - Pandurang Kolekar (Co-Lead)
 - Vinesh Vinayachandran (Co-Lead)
 - Satish Sati
-- Abhinandita Dash
+- Abhinandita Dash (Computational Biology, St. Jude Children's Research Hospital)
 - Sheetal Bhatara
 - Yuyu Zhang
 - Sreerag M
