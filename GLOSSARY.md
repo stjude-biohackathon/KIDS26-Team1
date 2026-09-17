@@ -247,13 +247,6 @@ fixed CSV export and looks up whichever genes you enter. One row per requested g
 | **UniProt_ID** | UniProt accession the classifier resolved the gene symbol to. | `Q9NPI1`. |
 | **cached** | Whether this gene was found in the loaded file at all — the flag driving the fallback above. | `True` / `False`. |
 
-⚠️ **Important caveat carried over from validating this exact classifier this session:** one of its
-feature blocks (ProteomeLM-S) is sensitive to which other proteins were embedded in the same
-scoring batch. Probabilities are only safely comparable **within the same export/batch** — not
-across different CSV exports, and not against a small ad-hoc re-run of the classifier on just a
-few genes (which was empirically shown to inflate scores). This tab surfaces exactly one export at
-a time for that reason.
-
 ---
 
 ## 9. Output columns — Insights tab (narrative)
