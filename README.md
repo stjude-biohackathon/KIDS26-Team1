@@ -77,7 +77,7 @@ into `user_data/`:
 | `CRISPRGeneEffect.csv` | Chronos gene-effect |
 | `OmicsExpressionTPMLogp1HumanProteinCodingGenes.csv` | log2(TPM+1) expression |
 | `Model.csv` | cell-line metadata |
-| `CRISPRInferredCommonEssentials.csv` | common-essential list (bundled already) |
+| `CRISPRInferredCommonEssentials.csv` | common-essential list  |
 
 Then build the harmonized parquets (~10s):
 
