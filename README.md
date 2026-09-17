@@ -162,6 +162,7 @@ scrap-ai/
 ├── assets/                   # SCRAP-AI logo + icon
 ├── data/processed/           # (lite: empty; built by app/build_harmonized.py)
 ├── user_data/                # seed gene lists (+ where DepMap CSVs go)
+├── GLOSSARY.md               # Glossary of terms and scores used in the app
 └── ARCHITECTURE.md           # stack + diagrams
 ```
 
