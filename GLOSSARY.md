@@ -268,14 +268,20 @@ a time for that reason.
 | **Fetch STRING association with seeds** | checkbox, default **on** | Adds raw functional/physical STRING scores vs. the seed complex, fed to the LLM. Uses the sidebar's STRING edge cutoff. | — |
 | **Include last Tissue Specificity triage in the comparative table (if available)** | checkbox, default **on** | Reuses the most recent Tissue Specificity tab result for any typed genes it covered. Feeds **only** the deterministic Comparative Summary Table's "Tissue gates" column below — deliberately **not** sent to the LLM's own prompt (see note below). | — |
 | **Include last Drug Targets scoring as evidence (if available)** | checkbox, default **on** | Reuses the most recent Drug Targets tab result for any typed genes it covered — feeds both the LLM's prose and the comparative table's "Known drugs" column. | — |
+| **Fetch BioMCP pathways + tissue atlas (if installed)** | checkbox, default **off** | Reactome/KEGG pathway membership + Human Protein Atlas (HPA) tissue expression and subcellular localization, via the optional `biomcp` CLI (biomcp.org) — install separately with `uv tool install biomcp-cli`; not a Python dependency of this app. Off by default since it needs an external binary. Feeds both the in-tab display and the LLM's prose (unlike tissue-specificity, this data doesn't have a comparable nuance/gate-mismatch risk). Shows an honest "not installed" message, never a fabricated result, if enabled without installing biomcp. | — |
+| **Include plots from other tabs (…) in this report** | checkbox, default **off** | Reuses each tab's own cached last-run result to show the Co-expression volcano, Essentiality scatter, ranked-selectivity bar (all with the requested gene(s) circled/recolored crimson), STRING physical heatmap, Tissue Specificity heatmap, Drug Targets bar/heatmap, and Model Predictions classifier bar in a "📊 Plots from other tabs" expander. Co-expression/Essentiality/Model Predictions are always available once ranking exists; Interactions/Tissue Specificity/Drug Targets only if you've run that tab this session. Never triggers new computation from Insights. On-screen this is free; embedding the same plots in the PDF export additionally needs the `kaleido` package **and a real Chrome/Chromium already installed on the machine** (kaleido v1.x no longer bundles one) — if that prerequisite is missing, the PDF adds one clear note and you still get the on-screen plots. | — |
 | **LLM backend / API key** (expander) | provider selector + key + base URL fields | Configure which cloud provider/model narrates (see "LLM backend" in `app/README.md`). The **base URL** field lets `anthropic` point at a Claude-compatible endpoint other than api.anthropic.com — e.g. Microsoft Azure AI Foundry. | — |
 | **Generate narrative** | button | Produces the deterministic narrative (no model; always available). | — |
 | **Generate with LLM** | button | Produces the LLM-generated structured report (see below); requires a configured backend. | — |
-| **\U0001f4c4 Export as PDF** | button, appears after each narrative | Downloads exactly what's displayed — deterministic narrative or LLM report + comparative table — as a branded PDF (`app/pdf_export.py`). One button per narrative type. | — |
+| **\U0001f4c4 Export as PDF** | button, appears after each narrative | Downloads exactly what's displayed — deterministic narrative or LLM report + comparative table (+ cross-tab plots, if enabled) — as a branded PDF (`app/pdf_export.py`). One button per narrative type. | — |
 
 ### Deterministic narrative
 
-Plain-text summary grounded directly in the ranked-table columns (sections 2–4 above): per-gene co-expression/essentiality facts, common-essential flags, and a joint-percentage-ranked "top candidates" list. Needs no model at all and never changes structure.
+Plain-text summary grounded directly in the ranked-table columns (sections 2–4 above): per-gene co-expression/essentiality facts, common-essential flags, and a joint-percentage-ranked "top candidates" list. Needs no model at all and never changes structure. The headline `selectivity_delta` clause for each gene is wrapped in this app's own bounded `==highlight==` syntax (see "Emphasis / highlighting" below).
+
+### Emphasis / highlighting
+
+Both narrative types use a small, app-owned emphasis vocabulary beyond plain **bold**/*italic*: a bounded `==highlighted text==` syntax (not standard markdown) that this app's own code parses and renders as a soft highlight — never raw HTML/CSS from the LLM. On-screen, `ui.render_highlighted_html()`/`ui.markdown_with_highlights()` escape any stray HTML first, then substitute `==...==` for a styled `<mark>` span. In the PDF, `pdf_export.py`'s `_split_inline()` renders the same spans in crimson. The LLM is instructed to use it sparingly — at most once or twice per gene, for the single most critical takeaway — and only ever around facts already present in the JSON, exactly like every other claim in the report.
 
 ### LLM narrative — structured report
 
@@ -283,7 +289,7 @@ When a backend is configured, **Generate with LLM** produces a report in exactly
 
 1. **Executive Summary** — one short paragraph per gene, headline `selectivity_delta`.
 2. **Cohort-Selective Dependency Evidence** — `pct_essential_cohort` vs `pct_essential_pan`, `selectivity_delta`, `common_essential` flag.
-3. **Protein Complex / STRING Association** — physical vs functional-only link to the seed complex (or "no STRING data provided").
+3. **Protein Complex / STRING Association** — physical vs functional-only link to the seed complex (or "no STRING data provided"); also notes Reactome/KEGG pathway membership and HPA subcellular localization/tissue expression when BioMCP data is present.
 4. **Drug-Design & Therapeutic Relevance** — protein annotation (domains/sites/PDB) + top-scoring known drug(s) if present.
 5. **Literature Evidence** — cites only PMIDs actually present in the data.
 6. **Experimental Validation & Testing Guidelines** — 2–4 concrete next lab steps grounded only in the supplied data.

@@ -111,7 +111,7 @@ tissue-specificity** evidence.
 | **PDF export** | `fpdf2` (pure Python, no system libraries), one new dep | bounded markdown-subset renderer (`app/pdf_export.py`) for both the deterministic narrative and the LLM report + its comparative table |
 | **Config/secrets** | `.env` autoloader + in-UI key field + self-test | three ways to supply a key; `.env` git-ignored |
 | **Runtime** | `uv`-managed venv, Python 3.12 | reproducible, isolated; `uv run` everywhere |
-| **Tests** | pytest, 106 tests | numerics vs reference libs, agent pipeline, RAG + STRING + Xena/GTEx + ChEMBL/DGIdb/OT APIs + PDF export (network-gated skips) |
+| **Tests** | pytest, 136 tests | numerics vs reference libs, agent pipeline, RAG + STRING + Xena/GTEx + ChEMBL/DGIdb/OT APIs + PDF export (network-gated skips) |
 
 ---
 
