@@ -19,9 +19,9 @@ in **STRING physical/functional interaction** evidence, and builds grounded
 ## Vision and Mission
 
 - **Vision:**
-To identify selective vulnerabilities within essential chromatin-remodeling machinery — non-core subunits, adaptors, and context-specific modules that tumor cells depend on more than normal cells.
+To discover actionable vulnerabilities within chromatin-remodeling machinery by targeting non-core subunits, adaptors, and context-specific regulatory modules that create selective dependencies in tumor cells
 - **Mission:**
-In 72 hours, we built and executed an agentic AI pipeline — QC (Biomni), dependency classification, model building and literature cross-checking (AI Co-scientist) — to rank uncharacterized INO80/SRCAP subunits by pediatric-specific dependency, with every score traceable to source data.
+Within 72 hours, our mission was to create an end-to-end agentic AI workflow that transforms multi-source biological data into transparent, evidence-backed rankings of subunits associated with INO80/SRCAP complex as potential pediatric cancer dependencies.
 
 
 ## Team members
@@ -185,3 +185,6 @@ scrap-ai/
 - **Windows** requires Git Bash only if you use `run.sh`; `run.cmd` works in plain cmd.
 
 See `app/README.md` for feature details and `ARCHITECTURE.md` for the design.
+
+## Contact:
+- Pandurang Kolekar (Pandurang.Kolekar@STJUDE.ORG)
