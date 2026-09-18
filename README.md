@@ -19,9 +19,9 @@ in **STRING physical/functional interaction** evidence, and builds grounded
 ## Vision and Mission
 
 - **Vision:**
-A screened, specific shortlist of chromatin-remodeler subunits and adaptors — the accessory targets, not the broadly essential core — as safer therapeutic windows for childhood cancer.
+To identify selective vulnerabilities within essential chromatin-remodeling machinery — non-core subunits, adaptors, and context-specific modules that tumor cells depend on more than normal cells.
 - **Mission:**
-In 72 hours, we built and ran an agentic AI pipeline — QC (Biomni), feature engineering (STELLA), classification, and literature cross-checking (AI Co-scientist) — to rank uncharacterized INO80/SRCAP subunits by pediatric-specific dependency, with every score traceable to its source data.
+In 72 hours, we built and executed an agentic AI pipeline — QC (Biomni), dependency classification, model building and literature cross-checking (AI Co-scientist) — to rank uncharacterized INO80/SRCAP subunits by pediatric-specific dependency, with every score traceable to source data.
 
 
 ## Team members
@@ -39,7 +39,7 @@ In 72 hours, we built and ran an agentic AI pipeline — QC (Biomni), feature en
 
 ## About
 
-Each human cell packs roughly two meters of DNA into a nucleus only a few micrometers wide, wrapping the genome around histone proteins into nucleosomes — the repeating beads-on-a-string units of chromatin. That packaging is far from static: ATP-dependent chromatin remodelers like INO80 and SRCAP continuously reposition nucleosomes and swap in the histone variant H2A.Z at gene promoters, deciding which genes a cell can even reach. These remodelers are universal — every cell depends on them, which is exactly why their core catalytic machinery is essentially undruggable. But both complexes are modular, built from swappable accessory subunits, and a specific subset of these appears to be one that pediatric tumors are quietly addicted to while healthy cells barely need them — a pediatric-specific weak spot hidden inside a universal machine. This matters because most childhood cancers carry few DNA mutations at all; their vulnerabilities are written into chromatin state, not sequence. Pinpointing these cancer-specific accessory submodules opens the door to disabling a tumor's remodeling machinery while leaving the essential core untouched in healthy tissue — precisely the kind of once-undruggable target that modern degraders like PROTACs and molecular glues can now reach, pointing toward safer, more selective treatments for children with catastrophic cancers.
+Many childhood cancers carry fewer DNA mutations than adult cancers, so we’re looking beyond sequence to how DNA is packaged and regulated. Chromatin remodelers control that packaging and decide which genes switch on. The problem: healthy cells rely on them just as much as tumors do, so shutting them down isn't an option. The real question is narrower — not how to block the machine, but which piece of it the tumor can't live without. We think the answer may lie in specific submodules rather than the whole complex. Here we present SCRAP AI. Our Agentic workflow uncovers hidden cancer vulnerabilities within essential chromatin-remodeling complexes. By integrating public gene-expression, dependency, protein-interaction, tissue-specificity, and drug-target data, AI agents identify accessory subunits and submodules—such as those within INO80 and SRCAP—that tumors may depend on more than healthy cells. The goal is simple: turn scattered evidence into a ranked shortlist of testable drug-target hypotheses for more selective cancer therapy.
 
 
 ## 1. Prerequisites
