@@ -167,6 +167,7 @@ scrap-ai/
 ├── pyproject.toml            # pinned dependencies
 ├── .python-version           # Python 3.14
 ├── .streamlit/config.toml    # brand theme
+├── .github/skills/           # Copilot agent skill (protein-complex-classifier)
 ├── app/                      # application code + tests + README
 ├── assets/                   # SCRAP-AI logo + icon
 ├── data/processed/           # (lite: empty; built by app/build_harmonized.py)
